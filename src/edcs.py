@@ -1,6 +1,20 @@
 import numpy as np
+import warnings
 
 def edc_gen(t_vals, a_vals, noise_level, time_axis, compensate_uli=True) -> np.ndarray:
+    """Gerador antigo, que tirei do DecayFitNet, mas que não entendo nddd
+
+    Args:
+        t_vals (_type_): _description_
+        a_vals (_type_): _description_
+        noise_level (_type_): _description_
+        time_axis (_type_): _description_
+        compensate_uli (bool, optional): _description_. Defaults to True.
+
+    Returns:
+        np.ndarray: _description_
+    """
+    warnings.warn('prefira usar edc_synth. Essa é copiada do DecayFitNet')
     t_vals = np.asarray(t_vals)
     a_vals = np.asarray(a_vals)
     value_dim = len(t_vals.shape) - 1
@@ -58,3 +72,28 @@ def tvec(data,fs):
     time_vector = np.linspace(0,max_time,n_spl)
     return time_vector
 
+def edc_synth(RT,A,t,SNR=None):
+    """Sintetiza um conjunto de curvas de decaimento + termo de ruído
+
+    Args:
+        RT (_type_): TR das curvas
+        A (_type_): Amplitude de cada curva (deveria ser normalizado, ainda estou vendo)
+        t (_type_): Vetor temporal
+        SNR (_type_, optional): Relação sinal ruído, em dB . Defaults to None.
+
+    Returns:
+        ndarray: vetor de curvas de decaimento (N_curvas + 1, T) em que a última linha do vetor é o platô
+        de ruído.
+    """
+    RT = np.atleast_1d(RT)
+    A = np.atleast_1d(A)
+    t = np.atleast_1d(t)
+    damp = np.log(1e6) / RT
+    curv= np.zeros([len(RT)+1,len(t)])
+    for idx,(tau,amp) in enumerate(zip(damp,A)):
+        curv[idx] = amp * np.exp(-tau*t)
+    if (SNR is None) or (SNR == 0):
+        curv[-1] = 0
+    else:
+        curv[-1] = 1/(10**(SNR/10))
+    return curv

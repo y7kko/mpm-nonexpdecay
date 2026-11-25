@@ -12,9 +12,9 @@ class MatrixPencil():
         self.dt=dt
         X = X.squeeze()
         self.X= X
-
         N = len(X)
         L = self._pencil_param_parser(self.pencil_param,N)
+
         Y = self._generate_kernel(X,N,L)
         U,s,V = self._svd(Y)
         M = self._estimate_M(s)
@@ -23,10 +23,17 @@ class MatrixPencil():
         V_trunc = V[:,:M]
         V1 = V_trunc[:-1,:]
         V2 = V_trunc[1:,:]
-        self.z = np.linalg.eigvals(self._hermitian(V2) @ V1)
+        self.z = np.linalg.eigvals(self._hermitian(V2) @ V1).real
         self.RT = self._poles_to_RT(self.z,dt)
+        self._estimate_amplitudes(X,self.z,N)
         self._log(f'TR: {self.RT}')
         return self
+
+
+    def _estimate_amplitudes(self,X,z,N):
+        B = np.vander(z, N, increasing=True).T
+        X = np.asarray(X).reshape(N,-1)   
+        self.amplitudes = np.linalg.lstsq(B, X, rcond=None)[0].squeeze()
 
     def compute_residues(self):
         raise NotImplementedError('Não impelemntei... (Sarkar, Pereira) eq 25')
